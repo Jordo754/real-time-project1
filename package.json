@@ -3,13 +3,21 @@
   "version": "1.0.0",
   "description": "Project 1 for Realtime Media Apps",
   "main": "./src/server.js",
+  "dependencies": {},
+  "devDependencies": {},
   "scripts": {
-    "start": "node ./src/server.js",
-    "pretest": "eslint ./src --fix",
-    "test": "echo \"Tests complete\""
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jordo754/real-time-project1.git"
   },
   "author": "Jordan Mato",
   "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Jordo754/real-time-project1/issues"
+  },
+  "homepage": "https://github.com/Jordo754/real-time-project1#readme",
   "dependencies": {
     "socket.io": "^1.7.2"
   },
