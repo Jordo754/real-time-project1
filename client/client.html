@@ -22,119 +22,202 @@
 
       //io atts
       let socket;
-
-      //input
-      let moveDown = false, moveUp = false, moveRight = false, moveLeft = false;
-      let typing = false;
-
-      //misc
-      let room;
-      let item = {};
-
-      //handle key down
-      const keyDownHandler = (e) => {  
-        //grab keycode from keyboard event
-        var keyPressed = e.which;
-
-        if (!typing) {
-          //Code from Cody's original function
-          // W OR UP
-          if(keyPressed === 87 || keyPressed === 38) {
-            moveUp = true;
+      let board;
+      let userColor;
+      let opponentColor;
+      let myTurn;
+      let selectedPiece = -1;
+      let pieceCount = 12;
+      
+      const updateBoard = () => {
+        //drawbackdrop
+        ctx.fillStyle = '#F5DEB3';
+        ctx.fillRect(75, 75, 450, 450);
+        
+        //draw the board
+        for (let i = 0; i < 8; i++) {
+          for (let j = 0; j < 8; j++) {
+            ctx.fillStyle = board.colors[j + (8 * i)];
+            ctx.fillRect(100 + (50 * j), 100 + (50 * i), 50, 50);
           }
-          // A OR LEFT
-          else if(keyPressed === 65 || keyPressed === 37) {
-            moveLeft = true;
+        }
+        
+        //draw the pieces
+        for (let i = 0; i < 8; i++) {
+          for (let j = 0; j < 8; j++) {
+            if (board.spaces[j + (8 * i)] === 1) {
+              ctx.fillStyle = 'red';
+              ctx.beginPath();
+              ctx.arc(125 + (50 * j), 125 + (50 * i), 20, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            
+            if (board.spaces[j + (8 * i)] === 2) {
+              ctx.fillStyle = 'blue';
+              ctx.beginPath();
+              ctx.arc(125 + (50 * j), 125 + (50 * i), 20, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            
+            if (j + (8 * i) === selectedPiece) {
+              ctx.lineWidth = 2;
+              ctx.strokeStyle = 'yellow';
+              ctx.strokeRect(100 + (50 * j), 100 + (50 * i), 50, 50);
+            }
           }
-          // S OR DOWN
-          else if(keyPressed === 83 || keyPressed === 40) {
-            moveDown = true;
-          }
-          // D OR RIGHT
-          else if(keyPressed === 68 || keyPressed === 39) {
-            moveRight = true;
+        }
+      }
+      
+      const update = (data) => {
+        requestAnimationFrame(update);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        updateBoard();
+        
+        if (myTurn) {
+          if (userColor === 1) {
+            ctx.fillStyle = 'red';
+            ctx.fillText('Your Turn', 100, 50);
+          } else {
+            ctx.fillText('Your Turn', 100, 550);
           }
         } else {
-          if (item.type === 'brick') {
-
+          if (userColor === 1) {
+            ctx.fillStyle = 'blue';
+            ctx.fillText("Opponent's Turn", 100, 550);
+          } else {
+            ctx.fillText("Opponent's Turn", 100, 50);
           }
         }
-
-        //if one of these keys is down, let's cancel the browsers
-        //default action so the page doesn't try to scroll on the user
-        if(moveUp || moveDown || moveLeft || moveRight) {
-          e.preventDefault();
-        }
-      };
-
-      //Function from Cody Van De Mark
-      //key up event
-      const keyUpHandler = (e) => {
-        //grab keycode from keyboard event
-        var keyPressed = e.which;
-
-        // W OR UP
-        if(keyPressed === 87 || keyPressed === 38) {
-          moveUp = false;
-        }
-        // A OR LEFT
-        else if(keyPressed === 65 || keyPressed === 37) {
-          moveLeft = false;
-        }
-        // S OR DOWN
-        else if(keyPressed === 83 || keyPressed === 40) {
-          moveDown = false;
-        }
-        // D OR RIGHT
-        else if(keyPressed === 68 || keyPressed === 39) {
-          moveRight = false;
-        }
-      };
-
-      const loadRoom = (data) => {
-        if (data.code === 0) {
-          room = data.room;
-          canvas.onclick = () => {};
-        } else if (data.code === 1) {
-          ctx.save();
-          ctx.fillStyle = 'red';
-          ctx.font = '20px Arial';
-          ctx.fillText('Game is full... (Current version does not support more than 4 players, sorry)');
-          ctx.restore();
+      }
+      
+      const clickedRectangle = (clickLoc, x, y, width, height) => {
+        if (clickLoc.pageX - clickLoc.target.offsetLeft > x && clickLoc.pageX - clickLoc.target.offsetLeft < x + width && clickLoc.pageY - clickLoc.target.offsetTop > y && clickLoc.pageY - clickLoc.target.offsetTop < y + height) {
+          return true;
         } else {
-          ctx.save();
-          ctx.fillStyle = 'red';
-          ctx.font = '20px Arial';
-          ctx.fillText('Game already in session... (Current version does not support hot joining or multiple games at one time, sorry)');
-          ctx.restore();
+          return false;
         }
-      };
-
+      }
+      
       const ioInit = () => {
         socket = io.connect();
+        let user = "";
+        
+        socket.on('connect', () => {
+          socket.emit('join', {});
+          ctx.clearRect(0,0,canvas.width, canvas.height);
+          ctx.fillText('Waiting for opponent...', 300, 255);
+          canvas.onclick = null;
+        });
 
-        socket.on('join', loadRoom);
-
-        socket.on('incomingItem', updateRoom);
-
-        //key listeners
-        document.body.addEventListener('keydown', keyDownHandler);
-        document.body.addEventListener('keyup', keyUpHandler);
-      };
+        socket.on('load', (data) => {
+          board = data.board;
+          if (data.color === 1) {
+            userColor = 1;
+            opponentColor = 2;
+            myTurn = true;
+          } else {
+            userColor = 2;
+            opponentColor = 1;
+            myTurn = false;
+          }
+          
+          canvas.onclick = (e) => {
+            if (myTurn) {
+              for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                  //current space for ease
+                  let currentSpace = j + (8 * i);
+                  
+                  //check if we are selecting a piece
+                  if (clickedRectangle(e, 100 + (50 * j), 100 + (50 * i), 50, 50) && board.spaces[currentSpace] === userColor) {
+                    selectedPiece = j + (8 * i);
+                  }
+                  
+                  //check if piece is selected
+                  if (selectedPiece != -1) {
+                    //check if moving into empty space
+                    if (clickedRectangle(e, 100 + (50 * j), 100 + (50 * i), 50, 50) && board.spaces[currentSpace] === 0) {
+                      //check if it's a valid space
+                      if (userColor === 1) {
+                        //check if moving into adjacent spaces
+                        if ((currentSpace === selectedPiece + 7 && j != 0) || 
+                            (currentSpace === selectedPiece + 9 && j != 8) || 
+                            (board.spaces[selectedPiece] === -userColor && ((currentSpace === selectedPiece - 7 && j!= 0) || (currentSpace === selectedPiece - 9 && j != 8)))) {
+                          board.spaces[currentSpace] = board.spaces[selectedPiece];
+                          board.spaces[selectedPiece] = 0;
+                          socket.emit('clientUpdate', { boardSpaces: board.spaces, pieceCount: pieceCount, selectedPiece: selectedPiece, currentSpace: currentSpace, color: board.spaces[currentSpace], jumpedSpace: -1 });
+                          selectedPiece = -1;
+                        }
+                        
+                        //check if jumping opponent piece
+                        if ((currentSpace === selectedPiece + 14 && j != 1 && (board.spaces[selectedPiece + 7] === opponentColor || board.spaces[selectedPiece + 7] === -opponentColor)) || 
+                            (currentSpace === selectedPiece + 18 && j != 7 && (board.spaces[selectedPiece + 9] === opponentColor || board.spaces[selectedPiece + 9] === -opponentColor)) || 
+                            (board.spaces[selectedPiece] === -userColor && 
+                             ((currentSpace === selectedPiece - 14 && j != 1 && (board.spaces[selectedPiece - 7] === opponentColor || board.spaces[selectedPiece - 7] === -opponentColor)) ||
+                              (currentSpace === selectedPiece - 18 && j != 7 && (board.spaces[selectedPiece - 9] === opponentColor || board.spaces[selectedPiece - 9] === -opponentColor))
+                              ))) {
+                          board.spaces[currentSpace] = board.spaces[selectedPiece];
+                          board.spaces[(selectedPiece + currentSpace) / 2] = 0;
+                          board.spaces[selectedPiece] = 0;
+                          socket.emit('clientUpdate', { boardSpaces: board.spaces, pieceCount: pieceCount, selectedPiece: selectedPiece, currentSpace: currentSpace, color: board.spaces[currentSpace], jumpedSpace: (selectedPiece + currentSpace) / 2 });
+                          selectedPiece = -1;
+                        }
+                      } else {
+                        //check if moving into adjacent spaces
+                        if ((currentSpace === selectedPiece - 7 && j != 0) || 
+                            (currentSpace === selectedPiece - 9 && j != 8) || 
+                            (board.spaces[selectedPiece] === -userColor && ((currentSpace === selectedPiece + 7 && j!= 0) || (currentSpace === selectedPiece + 9 && j != 8)))) {
+                          board.spaces[currentSpace] = board.spaces[selectedPiece];
+                          board.spaces[selectedPiece] = 0;
+                          socket.emit('clientUpdate', { boardSpaces: board.spaces, pieceCount: pieceCount, selectedPiece: selectedPiece, currentSpace: currentSpace, color: board.spaces[currentSpace], jumpedSpace: -1 });
+                          selectedPiece = -1;
+                        }
+                        
+                        //check if jumping opponent piece
+                        if ((currentSpace === selectedPiece - 14 && j != 1 && (board.spaces[selectedPiece - 7] === opponentColor || board.spaces[selectedPiece - 7] === -opponentColor)) || 
+                            (currentSpace === selectedPiece - 18 && j != 7 && (board.spaces[selectedPiece - 9] === opponentColor || board.spaces[selectedPiece - 9] === -opponentColor)) || 
+                            (board.spaces[selectedPiece] === -userColor && 
+                             ((currentSpace === selectedPiece + 14 && j != 1 && (board.spaces[selectedPiece + 7] === opponentColor || board.spaces[selectedPiece + 7] === -opponentColor)) ||
+                              (currentSpace === selectedPiece + 18 && j != 7 && (board.spaces[selectedPiece + 9] === opponentColor || board.spaces[selectedPiece + 9] === -opponentColor))
+                              ))) {
+                          board.spaces[currentSpace] = board.spaces[selectedPiece];
+                          board.spaces[(selectedPiece + currentSpace) / 2] = 0;
+                          board.spaces[selectedPiece] = 0;
+                          socket.emit('clientUpdate', { boardSpaces: board.spaces, pieceCount: pieceCount, selectedPiece: selectedPiece, currentSpace: currentSpace, color: board.spaces[currentSpace], jumpedSpace: (selectedPiece + currentSpace) / 2 });
+                          selectedPiece = -1;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          };
+          
+          update();
+        });
+        
+        socket.on('update', (data) => {
+          pieceCount = data.pieceCount;
+          board.spaces = data.boardSpaces;
+          
+          update();
+        });
+      }
 
       const canvasInit = () => {
         canvas = document.querySelector('canvas');
         ctx = canvas.getContext('2d');
-        ctx.strokeRect(200, 230, 100, 40);
+        ctx.strokeRect(250, 230, 100, 40);
         ctx.textAlign = 'center';
         ctx.font = '15px Arial';
-        ctx.fillText('Join', 250, 255);
+        ctx.fillText('Join', 300, 255);
 
-        canvas.addEventListener('click', () =>{
-          if (e.pageX - e.target.offsetLeft > 200 && e.pageX - e.target.offsetLeft < 300 && e.pageY - e.target.offsetTop > 230 && e.pageY - e.target.offsetTop < 270) {
+        canvas.onclick = (e) => {
+          if (clickedRectangle(e, 250, 230, 100, 40)) {
             ioInit();
           }
-        });
+        };
       };
 
       const init = () => {
@@ -156,38 +239,9 @@
       height: 306px;
       overflow-y: scroll;
     }
-    
-    p {
-      margin: 0;
-    }
-    
-    a {
-      color: black;
-      text-decoration: none;
-    }
-    
-    section {
-      clear: both;
-      width: 313px;
-    }
-    
-    #chat {
-      float: left;
-      width: 303px;
-    }
-    
-    #rooms {
-      float: right;
-      overflow-y: hidden;
-      min-width: 100px;
-    }
-    
-    h4 {
-      margin: 0;
-    }
   </style>
 </head>
 <body>
-  
+  <canvas width="600" height="600"></canvas>
 </body>
 </html>
