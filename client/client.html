@@ -28,6 +28,8 @@
       let myTurn;
       let selectedPiece = -1;
       let pieceCount = 12;
+      let gameOver = false;
+      let ifCanJump = false;
       
       const updateBoard = () => {
         //drawbackdrop
@@ -45,18 +47,32 @@
         //draw the pieces
         for (let i = 0; i < 8; i++) {
           for (let j = 0; j < 8; j++) {
-            if (board.spaces[j + (8 * i)] === 1) {
+            if (board.spaces[j + (8 * i)] === 1 || board.spaces[j + (8 * i)] === -1) {
               ctx.fillStyle = 'red';
               ctx.beginPath();
               ctx.arc(125 + (50 * j), 125 + (50 * i), 20, 0, Math.PI * 2);
               ctx.fill();
+              
+              if (board.spaces[j + (8 * i)] === -1) {
+                ctx.fillStyle = 'yellow';
+                ctx.beginPath();
+                ctx.arc(125 + (50 * j), 125 + (50 * i), 5, 0, Math.PI * 2);
+                ctx.fill();
+              }
             }
             
-            if (board.spaces[j + (8 * i)] === 2) {
+            if (board.spaces[j + (8 * i)] === 2 || board.spaces[j + (8 * i)] === -2) {
               ctx.fillStyle = 'blue';
               ctx.beginPath();
               ctx.arc(125 + (50 * j), 125 + (50 * i), 20, 0, Math.PI * 2);
               ctx.fill();
+              
+              if (board.spaces[j + (8 * i)] === -2) {
+                ctx.fillStyle = 'yellow';
+                ctx.beginPath();
+                ctx.arc(125 + (50 * j), 125 + (50 * i), 5, 0, Math.PI * 2);
+                ctx.fill();
+              }
             }
             
             if (j + (8 * i) === selectedPiece) {
@@ -69,25 +85,56 @@
       }
       
       const update = (data) => {
-        requestAnimationFrame(update);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         updateBoard();
         
-        if (myTurn) {
-          if (userColor === 1) {
-            ctx.fillStyle = 'red';
-            ctx.fillText('Your Turn', 100, 50);
+        //gameOver?
+        if (gameOver) {
+          ctx.fillStyle = 'white';
+          ctx.fillRect(canvas.width / 2 - 75, canvas.height / 2 - 20, 150, 40);
+          ctx.strokeStyle = 'gray';
+          ctx.strokeRect(canvas.width / 2 - 75, canvas.height / 2 - 20, 150, 40);
+          
+          //lost
+          if (pieceCount == 0) {
+            //show winner
+            if (userColor == 1) {
+              ctx.fillStyle = 'blue';
+              ctx.fillText('Blue Player has won!', canvas.width / 2, canvas.height / 2);
+            } else {
+              ctx.fillStyle = 'red';
+              ctx.fillText('Red Player has won!', canvas.width / 2, canvas.height / 2);
+            }
           } else {
-            ctx.fillText('Your Turn', 100, 550);
+            if (userColor == 1) {
+              ctx.fillStyle = 'red';
+              ctx.fillText('You have won!', canvas.width / 2, canvas.height / 2);
+            } else {
+              ctx.fillStyle = 'blue';
+              ctx.fillText('You have won!', canvas.width / 2, canvas.height / 2);
+            }
           }
         } else {
-          if (userColor === 1) {
-            ctx.fillStyle = 'blue';
-            ctx.fillText("Opponent's Turn", 100, 550);
+          if (myTurn) {
+            if (userColor === 1) {
+              ctx.fillStyle = 'red';
+              ctx.fillText('Your Turn', 100, 50);
+            } else {
+              ctx.fillStyle = 'blue';
+              ctx.fillText('Your Turn', 100, 550);
+            }
           } else {
-            ctx.fillText("Opponent's Turn", 100, 50);
+            if (userColor === 1) {
+              ctx.fillStyle = 'blue';
+              ctx.fillText("Opponent's Turn", 100, 550);
+            } else {
+              ctx.fillStyle = 'red';
+              ctx.fillText("Opponent's Turn", 100, 50);
+            }
           }
         }
+        
+        requestAnimationFrame(update);
       }
       
       const clickedRectangle = (clickLoc, x, y, width, height) => {
@@ -96,6 +143,48 @@
         } else {
           return false;
         }
+      }
+      
+      const canJumpAgain = (row, currentSpace) => {
+        if (userColor === 1) {
+          if (board.spaces[currentSpace] === (-userColor)) {
+            if ((Math.abs(board.spaces[currentSpace - 7]) === opponentColor && row < 7) && (board.spaces[currentSpace - 14] === 0 && row < 6)) {
+              return true;
+            }
+            
+            if ((Math.abs(board.spaces[currentSpace - 9]) === opponentColor && row > 0) && (board.spaces[currentSpace - 18] === 0 && row > 1)) {
+              return true;
+            }
+          }
+          
+          if ((Math.abs(board.spaces[currentSpace + 7]) === opponentColor && row > 0) && (board.spaces[currentSpace + 14] === 0 && row > 1)) {
+            return true;
+          }
+
+          if ((Math.abs(board.spaces[currentSpace + 9]) === opponentColor && row < 7) && (board.spaces[currentSpace + 18] === 0 && row < 6)) {
+            return true;
+          }
+        } else {
+          if (board.spaces[currentSpace] === (-userColor)) {
+            if ((Math.abs(board.spaces[currentSpace + 7]) === opponentColor && row > 0) && (board.spaces[currentSpace + 14] === 0 && row > 1)) {
+              return true;
+            }
+            
+            if ((Math.abs(board.spaces[currentSpace + 9]) === opponentColor && row < 7) && (board.spaces[currentSpace + 18] === 0 && row < 6)) {
+              return true;
+            }
+          }
+          
+          if ((Math.abs(board.spaces[currentSpace - 7]) === opponentColor && row < 7) && (board.spaces[currentSpace - 14] === 0 && row < 6)) {
+            return true;
+          }
+
+          if ((Math.abs(board.spaces[currentSpace - 9]) === opponentColor && row > 0) && (board.spaces[currentSpace - 18] === 0 && row > 1)) {
+            return true;
+          }
+        }
+        
+        return false;
       }
       
       const ioInit = () => {
@@ -125,66 +214,116 @@
             if (myTurn) {
               for (let i = 0; i < 8; i++) {
                 for (let j = 0; j < 8; j++) {
-                  //current space for ease
-                  let currentSpace = j + (8 * i);
-                  
-                  //check if we are selecting a piece
-                  if (clickedRectangle(e, 100 + (50 * j), 100 + (50 * i), 50, 50) && board.spaces[currentSpace] === userColor) {
-                    selectedPiece = j + (8 * i);
-                  }
-                  
-                  //check if piece is selected
-                  if (selectedPiece != -1) {
-                    //check if moving into empty space
-                    if (clickedRectangle(e, 100 + (50 * j), 100 + (50 * i), 50, 50) && board.spaces[currentSpace] === 0) {
-                      //check if it's a valid space
-                      if (userColor === 1) {
-                        //check if moving into adjacent spaces
-                        if ((currentSpace === selectedPiece + 7 && j != 0) || 
-                            (currentSpace === selectedPiece + 9 && j != 8) || 
-                            (board.spaces[selectedPiece] === -userColor && ((currentSpace === selectedPiece - 7 && j!= 0) || (currentSpace === selectedPiece - 9 && j != 8)))) {
-                          board.spaces[currentSpace] = board.spaces[selectedPiece];
-                          board.spaces[selectedPiece] = 0;
-                          socket.emit('clientUpdate', { boardSpaces: board.spaces, pieceCount: pieceCount, selectedPiece: selectedPiece, currentSpace: currentSpace, color: board.spaces[currentSpace], jumpedSpace: -1 });
-                          selectedPiece = -1;
-                        }
-                        
-                        //check if jumping opponent piece
-                        if ((currentSpace === selectedPiece + 14 && j != 1 && (board.spaces[selectedPiece + 7] === opponentColor || board.spaces[selectedPiece + 7] === -opponentColor)) || 
-                            (currentSpace === selectedPiece + 18 && j != 7 && (board.spaces[selectedPiece + 9] === opponentColor || board.spaces[selectedPiece + 9] === -opponentColor)) || 
-                            (board.spaces[selectedPiece] === -userColor && 
-                             ((currentSpace === selectedPiece - 14 && j != 1 && (board.spaces[selectedPiece - 7] === opponentColor || board.spaces[selectedPiece - 7] === -opponentColor)) ||
-                              (currentSpace === selectedPiece - 18 && j != 7 && (board.spaces[selectedPiece - 9] === opponentColor || board.spaces[selectedPiece - 9] === -opponentColor))
-                              ))) {
-                          board.spaces[currentSpace] = board.spaces[selectedPiece];
-                          board.spaces[(selectedPiece + currentSpace) / 2] = 0;
-                          board.spaces[selectedPiece] = 0;
-                          socket.emit('clientUpdate', { boardSpaces: board.spaces, pieceCount: pieceCount, selectedPiece: selectedPiece, currentSpace: currentSpace, color: board.spaces[currentSpace], jumpedSpace: (selectedPiece + currentSpace) / 2 });
-                          selectedPiece = -1;
-                        }
-                      } else {
-                        //check if moving into adjacent spaces
-                        if ((currentSpace === selectedPiece - 7 && j != 0) || 
-                            (currentSpace === selectedPiece - 9 && j != 8) || 
-                            (board.spaces[selectedPiece] === -userColor && ((currentSpace === selectedPiece + 7 && j!= 0) || (currentSpace === selectedPiece + 9 && j != 8)))) {
-                          board.spaces[currentSpace] = board.spaces[selectedPiece];
-                          board.spaces[selectedPiece] = 0;
-                          socket.emit('clientUpdate', { boardSpaces: board.spaces, pieceCount: pieceCount, selectedPiece: selectedPiece, currentSpace: currentSpace, color: board.spaces[currentSpace], jumpedSpace: -1 });
-                          selectedPiece = -1;
-                        }
-                        
-                        //check if jumping opponent piece
-                        if ((currentSpace === selectedPiece - 14 && j != 1 && (board.spaces[selectedPiece - 7] === opponentColor || board.spaces[selectedPiece - 7] === -opponentColor)) || 
-                            (currentSpace === selectedPiece - 18 && j != 7 && (board.spaces[selectedPiece - 9] === opponentColor || board.spaces[selectedPiece - 9] === -opponentColor)) || 
-                            (board.spaces[selectedPiece] === -userColor && 
-                             ((currentSpace === selectedPiece + 14 && j != 1 && (board.spaces[selectedPiece + 7] === opponentColor || board.spaces[selectedPiece + 7] === -opponentColor)) ||
-                              (currentSpace === selectedPiece + 18 && j != 7 && (board.spaces[selectedPiece + 9] === opponentColor || board.spaces[selectedPiece + 9] === -opponentColor))
-                              ))) {
-                          board.spaces[currentSpace] = board.spaces[selectedPiece];
-                          board.spaces[(selectedPiece + currentSpace) / 2] = 0;
-                          board.spaces[selectedPiece] = 0;
-                          socket.emit('clientUpdate', { boardSpaces: board.spaces, pieceCount: pieceCount, selectedPiece: selectedPiece, currentSpace: currentSpace, color: board.spaces[currentSpace], jumpedSpace: (selectedPiece + currentSpace) / 2 });
-                          selectedPiece = -1;
+                  if (board.colors[j + (8 * i)] == 'black') {
+                    //current space for ease
+                    let currentSpace = j + (8 * i);
+
+                    //check if we are selecting a piece
+                    if (clickedRectangle(e, 100 + (50 * j), 100 + (50 * i), 50, 50) && Math.abs(board.spaces[currentSpace]) === userColor && !ifCanJump) {
+                      selectedPiece = j + (8 * i);
+                    }
+
+                    //check if piece is selected
+                    if (selectedPiece != -1) {
+                      //check if moving into empty space
+                      if (clickedRectangle(e, 100 + (50 * j), 100 + (50 * i), 50, 50) && board.spaces[currentSpace] === 0) {
+                        //check if it's a valid space
+                        if (userColor === 1) {
+                          //check if moving into adjacent spaces
+                          if (!ifCanJump && 
+                              (currentSpace === selectedPiece + 7 && selectedPiece % 8 > 0) || 
+                              (currentSpace === selectedPiece + 9 && selectedPiece % 8 < 7) || 
+                              (board.spaces[selectedPiece] === -userColor && 
+                              ((currentSpace === selectedPiece - 9 && selectedPiece % 8 > 0) || 
+                              (currentSpace === selectedPiece - 7 && selectedPiece % 8 < 7)))) {
+                            //did it king?
+                            if (currentSpace > 55 && board.spaces[selectedPiece] === userColor) {
+                              board.spaces[currentSpace] = -userColor; 
+                            } else {
+                              board.spaces[currentSpace] = board.spaces[selectedPiece];
+                            }
+                            board.spaces[selectedPiece] = 0;
+
+                            socket.emit('clientUpdate', { boardSpaces: board.spaces, pieceCount: pieceCount, jumped: 0, passTurn: true, user: userColor });
+
+                            selectedPiece = -1;
+                            myTurn = false;
+                          }
+
+                          //check if jumping opponent piece
+                          if ((Math.abs(board.spaces[selectedPiece + 7]) === opponentColor && board.spaces[selectedPiece + 14] === 0 && selectedPiece % 8 > 1) || 
+                             (Math.abs(board.spaces[selectedPiece + 9]) === opponentColor && board.spaces[selectedPiece + 18] === 0 && selectedPiece % 8 < 6) ||
+                             (board.spaces[selectedPiece] === (-userColor) &&
+                              ((Math.abs(board.spaces[selectedPiece - 7]) === opponentColor && board.spaces[selectedPiece - 14] === 0 && selectedPiece % 8 < 6) || 
+                              (Math.abs(board.spaces[selectedPiece - 9]) === opponentColor && board.spaces[selectedPiece - 18] === 0 && selectedPiece % 8 > 1)))) {
+
+                            if (currentSpace > 55 && board.spaces[selectedPiece] === userColor) {
+                              board.spaces[currentSpace] = -userColor; 
+                              ifCanJump = false;
+                            } else {
+                              board.spaces[currentSpace] = board.spaces[selectedPiece];
+                              ifCanJump = canJumpAgain(j, currentSpace);
+                            }
+                            board.spaces[(selectedPiece + currentSpace) / 2] = 0;
+                            board.spaces[selectedPiece] = 0;
+
+                            socket.emit('clientUpdate', { boardSpaces: board.spaces, pieceCount: pieceCount, jumped: 1, passTurn: !ifCanJump, user: userColor });
+
+                            if (ifCanJump) {
+                              selectedPiece = currentSpace;
+                            } else {
+                              selectedPiece = -1;
+                            }
+                            myTurn = ifCanJump;
+                          }
+                        } else {
+                          //check if moving into adjacent spaces
+                          if (!ifCanJump && 
+                              (currentSpace === selectedPiece - 9 && selectedPiece % 8 > 0) || 
+                              (currentSpace === selectedPiece - 7 && selectedPiece % 8 < 7) || 
+                              (board.spaces[selectedPiece] === -userColor && 
+                              ((currentSpace === selectedPiece + 7 && selectedPiece % 8 > 0) || 
+                              (currentSpace === selectedPiece + 9 && selectedPiece % 8 < 7)))) {
+                            //did it king?
+                            if (currentSpace < 8 && board.spaces[selectedPiece] === userColor) {
+                              board.spaces[currentSpace] = -userColor; 
+                            } else {
+                              board.spaces[currentSpace] = board.spaces[selectedPiece];
+                            }
+                            board.spaces[selectedPiece] = 0;
+
+                            socket.emit('clientUpdate', { boardSpaces: board.spaces, pieceCount: pieceCount, jumped: 0, passTurn: true, user: userColor });
+
+                            selectedPiece = -1;
+                            myTurn = false;
+                          }
+
+                          //check if jumping opponent piece
+                          if ((Math.abs(board.spaces[selectedPiece - 7]) === opponentColor && board.spaces[selectedPiece - 14] === 0 && selectedPiece % 8 < 6) || 
+                             (Math.abs(board.spaces[selectedPiece - 9]) === opponentColor && board.spaces[selectedPiece - 18] === 0 && selectedPiece % 8 > 1) ||
+                             (board.spaces[selectedPiece] === (-userColor) &&
+                              ((Math.abs(board.spaces[selectedPiece + 7]) === opponentColor && board.spaces[selectedPiece + 14] === 0 && selectedPiece % 8 > 1) || 
+                              (Math.abs(board.spaces[selectedPiece + 9]) === opponentColor && board.spaces[selectedPiece + 18] === 0 && selectedPiece % 8 < 6)))) {
+                            ifCanJump = canJumpAgain(j, currentSpace);
+                            if (currentSpace < 8 && board.spaces[selectedPiece] === userColor) {
+                              board.spaces[currentSpace] = -userColor;
+                              ifCanJump = false;
+                            } else {
+                              board.spaces[currentSpace] = board.spaces[selectedPiece];
+                              ifCanJump = canJumpAgain(j, currentSpace);
+                            }
+                            board.spaces[(selectedPiece + currentSpace) / 2] = 0;
+                            board.spaces[selectedPiece] = 0;
+
+                            socket.emit('clientUpdate', { boardSpaces: board.spaces, pieceCount: pieceCount, jumped: 1, passTurn: !ifCanJump, user: userColor });
+
+                            if (ifCanJump) {
+                              selectedPiece = currentSpace;
+                            } else {
+                              selectedPiece = -1;
+                            }
+                            myTurn = ifCanJump;
+                          }
                         }
                       }
                     }
@@ -198,11 +337,25 @@
         });
         
         socket.on('update', (data) => {
-          pieceCount = data.pieceCount;
-          board.spaces = data.boardSpaces;
+          pieceCount -= data.lostPieces;
           
+          if (pieceCount == 0) {
+            socket.emit('victory', {});
+          }
+          
+          console.log(board.spaces);
+          board.spaces = data.boardSpaces;
+          myTurn = data.passTurn;
           update();
         });
+        
+        socket.on('victory', (data) => {
+          gameOver = true;
+        });
+      }
+      
+      const drawGameOver = () => {
+        
       }
 
       const canvasInit = () => {
@@ -226,6 +379,7 @@
 
       window.onload = init;
     }());
+
   </script>
   
   <style>

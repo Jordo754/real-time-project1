@@ -74,15 +74,12 @@ const onMsg = (sock) => {
   const socket = sock;
   
   socket.on('clientUpdate', (data) => {
-    data.boardSpaces[data.currentSpace] = data.boardSpaces[data.selectedPiece];
-    data.boardSpaces[data.selectedPiece] = 0;
-    if (data.jumpedSpace != -1) {
-      data.boardSpaces[data.jumpedSpace] = 0;
-      socket.broadcast.to(socket.room).emit('update', { pieceCount: data.pieceCount - 1, boardSpaces: data.boardSpaces });
-    } else {
-      socket.broadcast.to(socket.room).emit('update', { pieceCount: data.pieceCount, boardSpaces: data.boardSpaces });
-    }
-    
+    socket.broadcast.to(socket.room).emit('update', { lostPieces: data.jumped, boardSpaces: data.boardSpaces, passTurn: data.passTurn });
+  });
+  
+  socket.on('victory', (data) => {
+    socket.broadcast.to(socket.room).emit('victory', {  });
+    socket.emit('victory', { });
   });
 };
 
@@ -90,7 +87,10 @@ const onDisconnect = (sock) => {
   const socket = sock;
 
   socket.on('disconnect', () => {
-    
+    userCount--;
+    if (userCount < 0) {
+      userCount = 0;
+    }
   });
 };
 
