@@ -22,32 +22,32 @@ let i = 0;
 let userCount = 0;
 const baseBoard = {
   colors: ['white', 'black', 'white', 'black', 'white', 'black', 'white', 'black',
-           'black', 'white', 'black', 'white', 'black', 'white', 'black', 'white',
-           'white', 'black', 'white', 'black', 'white', 'black', 'white', 'black',
-           'black', 'white', 'black', 'white', 'black', 'white', 'black', 'white',
-           'white', 'black', 'white', 'black', 'white', 'black', 'white', 'black',
-           'black', 'white', 'black', 'white', 'black', 'white', 'black', 'white',
-           'white', 'black', 'white', 'black', 'white', 'black', 'white', 'black',
-           'black', 'white', 'black', 'white', 'black', 'white', 'black', 'white'],
+    'black', 'white', 'black', 'white', 'black', 'white', 'black', 'white',
+    'white', 'black', 'white', 'black', 'white', 'black', 'white', 'black',
+    'black', 'white', 'black', 'white', 'black', 'white', 'black', 'white',
+    'white', 'black', 'white', 'black', 'white', 'black', 'white', 'black',
+    'black', 'white', 'black', 'white', 'black', 'white', 'black', 'white',
+    'white', 'black', 'white', 'black', 'white', 'black', 'white', 'black',
+    'black', 'white', 'black', 'white', 'black', 'white', 'black', 'white'],
   spaces: [0, 1, 0, 1, 0, 1, 0, 1,
-           1, 0, 1, 0, 1, 0, 1, 0,
-           0, 1, 0, 1, 0, 1, 0, 1,
-           0, 0, 0, 0, 0, 0, 0, 0,
-           0, 0, 0, 0, 0, 0, 0, 0,
-           2, 0, 2, 0, 2, 0, 2, 0,
-           0, 2, 0, 2, 0, 2, 0, 2,
-           2, 0, 2, 0, 2, 0, 2, 0],
+    1, 0, 1, 0, 1, 0, 1, 0,
+    0, 1, 0, 1, 0, 1, 0, 1,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    2, 0, 2, 0, 2, 0, 2, 0,
+    0, 2, 0, 2, 0, 2, 0, 2,
+    2, 0, 2, 0, 2, 0, 2, 0],
 };
 
 const onJoined = (sock) => {
   const socket = sock;
 
-  socket.on('join', (data) => {
+  socket.on('join', () => {
     // check if room isn't full
     if (userCount < 2) {
       socket.join(`room${i}`);
       socket.room = `room${i}`;
-      console.log('user joined ' + socket.room);
+      console.log(`user joined ${socket.room}`);
       userCount++;
     }
 
@@ -72,13 +72,13 @@ const onJoined = (sock) => {
 
 const onMsg = (sock) => {
   const socket = sock;
-  
+
   socket.on('clientUpdate', (data) => {
     socket.broadcast.to(socket.room).emit('update', { lostPieces: data.jumped, boardSpaces: data.boardSpaces, passTurn: data.passTurn });
   });
-  
-  socket.on('victory', (data) => {
-    socket.broadcast.to(socket.room).emit('victory', {  });
+
+  socket.on('victory', () => {
+    socket.broadcast.to(socket.room).emit('victory', { });
     socket.emit('victory', { });
   });
 };
